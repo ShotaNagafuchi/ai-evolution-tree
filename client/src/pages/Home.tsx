@@ -1,360 +1,293 @@
-// Home.tsx
-// Design: Evolutionary Cartography — main page layout
-// Left: filter sidebar, Center: evolution tree, Right: detail panel (slide-in)
-// Top: hero header with parchment background
-
-import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import EvolutionTree from "@/components/EvolutionTree";
+import React, { useState, useCallback } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import VerticalTimeline from "@/components/VerticalTimeline";
 import NodeDetailPanel from "@/components/NodeDetailPanel";
 import BenchmarkTimeline from "@/components/BenchmarkTimeline";
 import {
-  type TheoryCategory,
-  categoryColors,
-  categoryLabels,
-  evolutionNodes,
-  statusLabels,
+  nodes,
+  eras,
+  LANE_COLORS,
+  laneLabels,
+  ALL_LANES,
+  BreakthroughNode,
+  ResearchLane,
 } from "@/data/evolutionData";
-import { Search, Filter, BarChart2, GitBranch, Info, ChevronRight, Menu, X } from "lucide-react";
+import { GitBranch, BarChart2, Info, Filter, X } from "lucide-react";
 
-const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663201320118/kgj73nLWxjESQWyKeSobhs/hero_tree-ntrH8AYGNkPq966hoj282T.webp";
-const PARCHMENT_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663201320118/kgj73nLWxjESQWyKeSobhs/bg_parchment-XNe9quSEb6Gjmys45dzb2q.webp";
-
-type Tab = "tree" | "benchmarks";
-
-const ALL_CATEGORIES: TheoryCategory[] = [
-  "symbolic",
-  "connectionist",
-  "reinforcement",
-  "transformer",
-  "diffusion",
-  "hybrid",
+const STATUS_LEGEND = [
+  { status: "active", color: "#22c55e", label: "Active / Ongoing" },
+  { status: "foundational", color: "#3b82f6", label: "Foundational" },
+  { status: "stalled", color: "#f59e0b", label: "Stalled" },
+  { status: "superseded", color: "#ef4444", label: "Superseded" },
 ];
 
 export default function Home() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filterCategories, setFilterCategories] = useState<TheoryCategory[]>([]);
-  const [activeTab, setActiveTab] = useState<Tab>("tree");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedNode, setSelectedNode] = useState<BreakthroughNode | null>(null);
+  const [activeLanes, setActiveLanes] = useState<Set<ResearchLane>>(
+    new Set(ALL_LANES)
+  );
+  const [activeEras, setActiveEras] = useState<Set<string>>(
+    new Set(eras.map((e) => e.id))
+  );
+  const [showFilters, setShowFilters] = useState(false);
 
-  const handleSelect = useCallback((id: string | null) => {
-    setSelectedId(id);
+  const handleSelectNode = useCallback((node: BreakthroughNode | null) => {
+    setSelectedNode(node);
   }, []);
 
-  const toggleCategory = (cat: TheoryCategory) => {
-    setFilterCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+  const handleNavigateTo = useCallback((nodeId: string) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (node) setSelectedNode(node);
+  }, []);
+
+  const toggleLane = (lane: ResearchLane) => {
+    setActiveLanes((prev) => {
+      const next = new Set(prev);
+      if (next.has(lane)) {
+        if (next.size > 1) next.delete(lane);
+      } else {
+        next.add(lane);
+      }
+      return next;
+    });
   };
 
-  // Search filter
-  const searchResults = searchQuery.trim()
-    ? evolutionNodes.filter(
-        (n) =>
-          n.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          n.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          String(n.year).includes(searchQuery)
-      )
-    : [];
+  const toggleEra = (eraId: string) => {
+    setActiveEras((prev) => {
+      const next = new Set(prev);
+      if (next.has(eraId)) {
+        if (next.size > 1) next.delete(eraId);
+      } else {
+        next.add(eraId);
+      }
+      return next;
+    });
+  };
 
-  const nodeCount = evolutionNodes.filter(
-    (n) => filterCategories.length === 0 || filterCategories.includes(n.category)
+  const visibleCount = nodes.filter(
+    (n) => activeLanes.has(n.lane) && activeEras.has(n.era)
   ).length;
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        backgroundImage: `url(${PARCHMENT_BG})`,
-        backgroundSize: "400px 400px",
-        backgroundRepeat: "repeat",
-      }}
-    >
-      {/* ── Hero Header ─────────────────────────────────────────────────────── */}
-      <header className="relative overflow-hidden border-b border-border/60" style={{ minHeight: 220 }}>
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${HERO_IMG})`, opacity: 0.22 }}
-        />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, oklch(0.97 0.018 85 / 0.3), oklch(0.97 0.018 85 / 0.85))" }} />
-        <div className="relative z-10 container py-8">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <GitBranch size={16} className="text-muted-foreground" />
-                <span className="mono text-xs text-muted-foreground uppercase tracking-widest">
-                  AI Evolution Tree
-                </span>
-              </div>
-              <h1
-                className="text-4xl md:text-5xl font-bold leading-tight mb-3"
-                style={{ fontFamily: "'Playfair Display', serif", color: "oklch(0.22 0.04 55)" }}
-              >
-                AI能力進化
-                <span className="italic"> 系統図</span>
-              </h1>
-              <p className="text-sm md:text-base text-muted-foreground max-w-xl leading-relaxed">
-                1956年の記号AIから2025年の推論モデルまで、どの理論がどれだけAIの能力を引き上げたか——
-                そしてどの理論が失速したかを、進化系統図として探索する。
-              </p>
-            </div>
-            {/* Stats */}
-            <div className="hidden md:flex gap-6 text-right">
-              {[
-                { label: "理論・モデル", value: evolutionNodes.length },
-                { label: "ベンチマーク", value: 10 },
-                { label: "カバー年数", value: "69年" },
-              ].map((s) => (
-                <div key={s.label}>
-                  <p
-                    className="text-3xl font-bold"
-                    style={{ fontFamily: "'Playfair Display', serif", color: "oklch(0.38 0.10 240)" }}
-                  >
-                    {s.value}
-                  </p>
-                  <p className="mono text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {s.label}
-                  </p>
-                </div>
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* Top header */}
+      <header className="flex-shrink-0 border-b border-border px-5 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <GitBranch size={18} className="text-primary" />
+          <div>
+            <h1 className="display text-base font-bold text-foreground leading-tight">
+              AI Evolution Tree
+            </h1>
+            <p className="mono text-xs text-muted-foreground">
+              {visibleCount} breakthroughs · 1956–2026
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Filter toggle */}
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs mono transition-colors ${
+              showFilters
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Filter size={12} />
+            Filters
+          </button>
+
+          {/* GitHub link */}
+          <a
+            href="https://github.com/ShotaNagafuchi/ai-evolution-tree"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs mono bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            GitHub
+          </a>
+        </div>
+      </header>
+
+      {/* Filter panel */}
+      {showFilters && (
+        <div className="flex-shrink-0 border-b border-border bg-card px-5 py-3 space-y-3">
+          {/* Lane filters */}
+          <div>
+            <p className="mono text-xs text-muted-foreground mb-2 uppercase tracking-widest">Research Lanes</p>
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_LANES.map((lane) => (
+                <button
+                  key={lane}
+                  onClick={() => toggleLane(lane)}
+                  className="px-2.5 py-1 rounded-full text-xs mono transition-all"
+                  style={
+                    activeLanes.has(lane)
+                      ? {
+                          background: LANE_COLORS[lane] + "22",
+                          color: LANE_COLORS[lane],
+                          border: `1px solid ${LANE_COLORS[lane]}55`,
+                        }
+                      : {
+                          background: "oklch(0.16 0.01 240)",
+                          color: "oklch(0.45 0.02 240)",
+                          border: "1px solid oklch(0.22 0.015 240)",
+                        }
+                  }
+                >
+                  {laneLabels[lane]}
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Tab switcher */}
-          <div className="flex gap-1 mt-5">
-            {([
-              { id: "tree", label: "進化系統図", icon: <GitBranch size={13} /> },
-              { id: "benchmarks", label: "ベンチマーク推移", icon: <BarChart2 size={13} /> },
-            ] as { id: Tab; label: string; icon: React.ReactNode }[]).map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? "bg-foreground text-background font-medium"
-                    : "bg-background/60 text-muted-foreground hover:bg-background/80"
-                }`}
-                style={{ fontFamily: "'Lora', serif" }}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
+          {/* Era filters */}
+          <div>
+            <p className="mono text-xs text-muted-foreground mb-2 uppercase tracking-widest">Eras</p>
+            <div className="flex flex-wrap gap-1.5">
+              {eras.map((era) => (
+                <button
+                  key={era.id}
+                  onClick={() => toggleEra(era.id)}
+                  className="px-2.5 py-1 rounded-full text-xs mono transition-all"
+                  style={
+                    activeEras.has(era.id)
+                      ? {
+                          background: era.color + "22",
+                          color: era.color,
+                          border: `1px solid ${era.color}55`,
+                        }
+                      : {
+                          background: "oklch(0.16 0.01 240)",
+                          color: "oklch(0.45 0.02 240)",
+                          border: "1px solid oklch(0.22 0.015 240)",
+                        }
+                  }
+                >
+                  {era.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Status legend */}
+          <div className="flex items-center gap-4 pt-1">
+            {STATUS_LEGEND.map((s) => (
+              <div key={s.status} className="flex items-center gap-1.5">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: s.color }}
+                />
+                <span className="mono text-xs text-muted-foreground">{s.label}</span>
+              </div>
             ))}
           </div>
         </div>
-      </header>
+      )}
 
-      {/* ── Main Layout ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden" style={{ height: "calc(100vh - 220px)" }}>
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Timeline tabs */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Tabs defaultValue="tree" className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-shrink-0 px-4 pt-2 border-b border-border">
+              <TabsList className="bg-secondary h-8">
+                <TabsTrigger value="tree" className="text-xs mono gap-1.5 h-6">
+                  <GitBranch size={11} />
+                  Evolution Tree
+                </TabsTrigger>
+                <TabsTrigger value="benchmarks" className="text-xs mono gap-1.5 h-6">
+                  <BarChart2 size={11} />
+                  Benchmarks
+                </TabsTrigger>
+                <TabsTrigger value="about" className="text-xs mono gap-1.5 h-6">
+                  <Info size={11} />
+                  About
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-        {/* ── Left Sidebar ──────────────────────────────────────────────────── */}
-        <AnimatePresence initial={false}>
-          {sidebarOpen && activeTab === "tree" && (
-            <motion.aside
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 220, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-              className="shrink-0 border-r border-border/60 overflow-hidden flex flex-col"
-              style={{ background: "oklch(0.96 0.018 85 / 0.95)" }}
-            >
-              <div className="p-3 flex-1 overflow-y-auto">
-                {/* Search */}
-                <div className="relative mb-4">
-                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="理論・モデルを検索..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-7 pr-3 py-1.5 text-xs rounded border border-border bg-background/60 focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/60"
-                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-                  />
-                </div>
-
-                {/* Search results */}
-                {searchResults.length > 0 && (
-                  <div className="mb-4">
-                    <p className="mono text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">
-                      検索結果 ({searchResults.length})
-                    </p>
-                    <div className="space-y-1">
-                      {searchResults.slice(0, 8).map((n) => (
-                        <button
-                          key={n.id}
-                          onClick={() => { setSelectedId(n.id); setSearchQuery(""); }}
-                          className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-accent transition-colors"
-                        >
-                          <span className="font-medium">{n.label}</span>
-                          <span className="mono text-[9px] text-muted-foreground ml-1.5">{n.year}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <hr className="ink-divider mt-3 mb-3" />
-                  </div>
-                )}
-
-                {/* Category filter */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="mono text-[9px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                      <Filter size={9} />
-                      理論カテゴリ
-                    </p>
-                    {filterCategories.length > 0 && (
-                      <button
-                        onClick={() => setFilterCategories([])}
-                        className="mono text-[9px] text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        リセット
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    {ALL_CATEGORIES.map((cat) => {
-                      const active = filterCategories.includes(cat);
-                      const count = evolutionNodes.filter((n) => n.category === cat).length;
-                      return (
-                        <button
-                          key={cat}
-                          onClick={() => toggleCategory(cat)}
-                          className="w-full flex items-center justify-between px-2 py-1.5 rounded text-xs transition-all duration-150"
-                          style={
-                            active
-                              ? { background: categoryColors[cat] + "20", color: categoryColors[cat] }
-                              : { color: "oklch(0.40 0.04 60)" }
-                          }
-                        >
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
-                              style={{ background: categoryColors[cat], opacity: active ? 1 : 0.4 }}
-                            />
-                            {categoryLabels[cat]}
-                          </span>
-                          <span className="mono text-[9px] opacity-60">{count}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Status legend */}
-                <div>
-                  <p className="mono text-[9px] text-muted-foreground uppercase tracking-wider mb-2">
-                    凡例
-                  </p>
-                  <div className="space-y-1.5 text-[10px] text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <svg width="24" height="12">
-                        <circle cx="6" cy="6" r="5" fill="oklch(0.38 0.10 240)" fillOpacity="0.18" stroke="oklch(0.38 0.10 240)" strokeWidth="1.5" />
-                      </svg>
-                      現役・基礎理論
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg width="24" height="12">
-                        <circle cx="6" cy="6" r="5" fill="none" stroke="oklch(0.52 0.04 60)" strokeWidth="1" strokeDasharray="3,2" />
-                      </svg>
-                      失速・置換
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg width="24" height="12">
-                        <line x1="0" y1="6" x2="24" y2="6" stroke="oklch(0.38 0.10 240)" strokeWidth="2" />
-                      </svg>
-                      実線 = 強い影響
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg width="24" height="12">
-                        <line x1="0" y1="6" x2="24" y2="6" stroke="oklch(0.52 0.04 60)" strokeWidth="1" strokeDasharray="4,3" />
-                      </svg>
-                      点線 = 失速系統
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg width="24" height="12">
-                        <circle cx="6" cy="6" r="3" fill="oklch(0.38 0.10 240)" />
-                        <circle cx="18" cy="6" r="5" fill="oklch(0.38 0.10 240)" fillOpacity="0.3" />
-                      </svg>
-                      ノードサイズ = 能力上昇幅
-                    </div>
-                  </div>
-                </div>
-
-                {/* Node count */}
-                <div className="mt-4 pt-3 border-t border-border/40">
-                  <p className="mono text-[9px] text-muted-foreground">
-                    表示中: <span className="text-foreground font-medium">{nodeCount}</span> / {evolutionNodes.length} ノード
-                  </p>
-                </div>
-              </div>
-            </motion.aside>
-          )}
-        </AnimatePresence>
-
-        {/* ── Center: Tree or Benchmarks ────────────────────────────────────── */}
-        <main className="flex-1 min-w-0 relative overflow-hidden">
-          {/* Sidebar toggle button */}
-          {activeTab === "tree" && (
-            <button
-              onClick={() => setSidebarOpen((v) => !v)}
-              className="absolute top-3 left-3 z-20 p-1.5 rounded parchment-card hover:bg-accent transition-colors"
-            >
-              {sidebarOpen ? <X size={14} /> : <Menu size={14} />}
-            </button>
-          )}
-
-          {activeTab === "tree" ? (
-            <div className="w-full h-full">
-              <EvolutionTree
-                selectedId={selectedId}
-                onSelect={handleSelect}
-                filterCategories={filterCategories}
+            <TabsContent value="tree" className="flex-1 overflow-hidden m-0 mt-0">
+              <VerticalTimeline
+                onSelectNode={handleSelectNode}
+                selectedNodeId={selectedNode?.id ?? null}
+                activeLanes={activeLanes}
+                activeEras={activeEras}
               />
-            </div>
-          ) : (
-            <div className="w-full h-full overflow-y-auto">
-              <BenchmarkTimeline />
-            </div>
-          )}
-        </main>
+            </TabsContent>
 
-        {/* ── Right: Detail Panel ───────────────────────────────────────────── */}
-        <AnimatePresence>
-          {selectedId && activeTab === "tree" && (
-            <motion.aside
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 320, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
-              className="shrink-0 border-l border-border/60 overflow-hidden"
-              style={{ background: "oklch(0.99 0.010 85 / 0.97)" }}
-            >
-              <div className="w-[320px] h-full overflow-y-auto">
-                <NodeDetailPanel
-                  nodeId={selectedId}
-                  onClose={() => setSelectedId(null)}
-                />
+            <TabsContent value="benchmarks" className="flex-1 overflow-y-auto m-0 p-5">
+              <div className="max-w-3xl">
+                <h2 className="display text-xl font-bold text-foreground mb-1">
+                  Benchmark Saturation History
+                </h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  How quickly AI surpassed human performance on each benchmark — and why researchers had to keep raising the bar.
+                </p>
+                <BenchmarkTimeline />
               </div>
-            </motion.aside>
-          )}
-        </AnimatePresence>
-      </div>
+            </TabsContent>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-border/40 py-3 px-4 flex items-center justify-between" style={{ background: "oklch(0.96 0.018 85 / 0.9)" }}>
-        <p className="mono text-[10px] text-muted-foreground">
-          AI Evolution Tree — データは主要論文・Stanford AI Index 2026・Epoch AIに基づく
-        </p>
-        <a
-          href="https://github.com/ShotaNagafuchi/ai-evolution-tree"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mono text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-        >
-          GitHub
-          <ChevronRight size={10} />
-        </a>
-      </footer>
+            <TabsContent value="about" className="flex-1 overflow-y-auto m-0 p-5">
+              <div className="max-w-2xl space-y-5">
+                <div>
+                  <h2 className="display text-xl font-bold text-foreground mb-2">
+                    About This Project
+                  </h2>
+                  <p className="text-sm text-foreground/85 leading-relaxed">
+                    AI Evolution Tree visualizes 70 years of AI research breakthroughs as an interactive phylogenetic chart. Each node represents a key theoretical or engineering breakthrough, placed on a vertical time axis and categorized by research approach (Algorithm, Architecture, Hardware, Data, Optimization, Alignment).
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="display text-base font-semibold text-foreground mb-2">How to Read the Tree</h3>
+                  <div className="space-y-2 text-sm text-foreground/80">
+                    <p><span className="text-foreground font-medium">Vertical axis</span> — Time (scroll down = move forward in history)</p>
+                    <p><span className="text-foreground font-medium">Horizontal lanes</span> — Research approach category</p>
+                    <p><span className="text-foreground font-medium">Solid lines</span> — Direct intellectual lineage</p>
+                    <p><span className="text-foreground font-medium">Dashed lines</span> — Stalled or superseded path</p>
+                    <p><span className="text-foreground font-medium">Left stripe color</span> — Research lane</p>
+                    <p><span className="text-foreground font-medium">Click any node</span> — Opens detailed panel with mechanism, inspiration, capability metrics, and connections</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="display text-base font-semibold text-foreground mb-2">Metrics Explained</h3>
+                  <div className="space-y-1.5 text-sm text-foreground/80">
+                    <p><span className="text-foreground font-medium">Capability Gain</span> — Estimated improvement in task performance (0–100)</p>
+                    <p><span className="text-foreground font-medium">Influence Score</span> — How many subsequent breakthroughs cite or build on this work</p>
+                    <p><span className="text-foreground font-medium">Compute Cost</span> — Relative change in training/inference cost (negative = reduction)</p>
+                  </div>
+                </div>
+
+                <div className="bg-card rounded-lg p-4 border border-border text-xs mono text-muted-foreground">
+                  <p>Data sources: arXiv papers, Stanford AI Index, Epoch AI, Papers With Code benchmarks.</p>
+                  <p className="mt-1">Open source · MIT License · <a href="https://github.com/ShotaNagafuchi/ai-evolution-tree" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">github.com/ShotaNagafuchi/ai-evolution-tree</a></p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Detail panel */}
+        {selectedNode && (
+          <div
+            className="flex-shrink-0 border-l border-border bg-card overflow-hidden"
+            style={{ width: 360 }}
+          >
+            <NodeDetailPanel
+              node={selectedNode}
+              onClose={() => setSelectedNode(null)}
+              onNavigateTo={handleNavigateTo}
+              allNodes={nodes}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
