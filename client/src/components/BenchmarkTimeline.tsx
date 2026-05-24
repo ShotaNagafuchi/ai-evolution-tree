@@ -1,227 +1,178 @@
-// BenchmarkTimeline.tsx
-// Design: Evolutionary Cartography — benchmark saturation chart
-// Shows how quickly AI surpassed human baseline on each benchmark
-
+import React, { useState } from "react";
 import {
-  CartesianGrid,
-  Line,
   LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
+  Line,
   XAxis,
   YAxis,
-  Legend,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  ResponsiveContainer,
 } from "recharts";
-import { benchmarkHistories } from "@/data/evolutionData";
-import { useState } from "react";
+import { benchmarkHistories, BenchmarkHistory } from "@/data/evolutionData";
 
 const DOMAIN_COLORS: Record<string, string> = {
-  Vision: "#2D6A4F",
-  Language: "#6B2D8B",
-  Reasoning: "#1B4F72",
-  Coding: "#8B6914",
+  Vision: "#3b82f6",
+  Language: "#8b5cf6",
+  Reasoning: "#f59e0b",
+  Coding: "#22c55e",
 };
 
 export default function BenchmarkTimeline() {
-  const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
-  const domains = Array.from(new Set(benchmarkHistories.map((b) => b.domain)));
+  const [selected, setSelected] = useState<BenchmarkHistory>(benchmarkHistories[4]); // GSM8K default
 
-  const filtered = selectedDomain
-    ? benchmarkHistories.filter((b) => b.domain === selectedDomain)
-    : benchmarkHistories;
+  const chartData = selected.dataPoints.map((d) => ({
+    year: d.year,
+    score: d.score,
+    model: d.model,
+  }));
+
+  const domainColor = DOMAIN_COLORS[selected.domain] || "#64748b";
 
   return (
-    <div className="flex flex-col h-full p-4 overflow-y-auto">
-      {/* Header */}
-      <div className="mb-4">
-        <h2 className="text-xl font-bold mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
-          ベンチマーク飽和タイムライン
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          各ベンチマークでAIが人間レベルに到達するまでの軌跡。点線は人間のベースライン性能を示す。
-        </p>
-      </div>
-
-      {/* Domain filter */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        <button
-          onClick={() => setSelectedDomain(null)}
-          className={`cat-badge border transition-colors ${
-            selectedDomain === null
-              ? "bg-foreground text-background border-foreground"
-              : "bg-transparent text-muted-foreground border-border hover:border-foreground/40"
-          }`}
-        >
-          すべて
-        </button>
-        {domains.map((d) => (
+    <div className="space-y-6">
+      {/* Benchmark selector */}
+      <div className="flex flex-wrap gap-2">
+        {benchmarkHistories.map((bh) => (
           <button
-            key={d}
-            onClick={() => setSelectedDomain(d === selectedDomain ? null : d)}
-            className="cat-badge border transition-colors"
+            key={bh.id}
+            onClick={() => setSelected(bh)}
+            className={`px-3 py-1.5 rounded-full text-xs mono transition-all ${
+              selected.id === bh.id
+                ? "text-background font-medium"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
             style={
-              selectedDomain === d
-                ? { background: DOMAIN_COLORS[d] || "#555", color: "#fff", borderColor: DOMAIN_COLORS[d] || "#555" }
-                : { background: "transparent", color: DOMAIN_COLORS[d] || "#555", borderColor: (DOMAIN_COLORS[d] || "#555") + "60" }
+              selected.id === bh.id
+                ? { background: DOMAIN_COLORS[bh.domain] || "#64748b" }
+                : {}
             }
           >
-            {d}
+            {bh.name}
           </button>
         ))}
       </div>
 
-      {/* Benchmark cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filtered.map((bh) => {
-          const color = DOMAIN_COLORS[bh.domain] || "#555";
-          const isSaturated = !!bh.saturated;
-          const yearsToSaturate = bh.saturated ? bh.saturated - bh.introduced : null;
-
-          return (
-            <div key={bh.id} className="parchment-card rounded-lg p-4">
-              {/* Card header */}
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-semibold text-sm leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-                    {bh.name}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span
-                      className="cat-badge"
-                      style={{ background: color + "20", color, border: `1px solid ${color}40` }}
-                    >
-                      {bh.domain}
-                    </span>
-                    <span className="mono text-[9px] text-muted-foreground">
-                      導入: {bh.introduced}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  {isSaturated ? (
-                    <div>
-                      <p className="mono text-[10px] font-medium" style={{ color }}>
-                        {bh.saturated}年に突破
-                      </p>
-                      <p className="mono text-[9px] text-muted-foreground">
-                        {yearsToSaturate}年で飽和
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="mono text-[10px] text-muted-foreground">未飽和</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Chart */}
-              <ResponsiveContainer width="100%" height={130}>
-                <LineChart
-                  data={bh.dataPoints}
-                  margin={{ top: 4, right: 8, bottom: 4, left: -20 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="oklch(0.82 0.030 75)"
-                    strokeOpacity={0.5}
-                  />
-                  <XAxis
-                    dataKey="year"
-                    tick={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", fill: "oklch(0.52 0.04 60)" }}
-                    tickLine={false}
-                    axisLine={{ stroke: "oklch(0.82 0.030 75)" }}
-                  />
-                  <YAxis
-                    domain={[0, 105]}
-                    tick={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", fill: "oklch(0.52 0.04 60)" }}
-                    tickLine={false}
-                    axisLine={false}
-                    ticks={[0, 25, 50, 75, 100]}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: 10,
-                      background: "oklch(0.99 0.010 85)",
-                      border: "1px solid oklch(0.82 0.030 75)",
-                      borderRadius: 4,
-                    }}
-                    formatter={(val: number, _: string, props: any) => [
-                      `${val} (${props.payload?.model || ""})`,
-                      "スコア",
-                    ]}
-                  />
-                  {/* Human baseline */}
-                  <ReferenceLine
-                    y={bh.humanBaseline}
-                    stroke="oklch(0.45 0.04 60)"
-                    strokeDasharray="5 3"
-                    strokeOpacity={0.7}
-                    label={{
-                      value: `人間 ${bh.humanBaseline}`,
-                      position: "insideTopRight",
-                      fontSize: 8,
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fill: "oklch(0.45 0.04 60)",
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="score"
-                    stroke={color}
-                    strokeWidth={2.5}
-                    dot={{ fill: color, r: 3.5, strokeWidth: 0 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-
-              {/* Latest score */}
-              {bh.dataPoints.length > 0 && (
-                <div className="flex justify-between items-center mt-2 pt-2 border-t border-border/40">
-                  <span className="mono text-[9px] text-muted-foreground">
-                    最新: {bh.dataPoints[bh.dataPoints.length - 1].model}
-                  </span>
-                  <span className="mono text-[10px] font-medium" style={{ color }}>
-                    {bh.dataPoints[bh.dataPoints.length - 1].score} / {bh.humanBaseline}
-                  </span>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Summary stats */}
-      <div className="mt-6 parchment-card rounded-lg p-4">
-        <h3 className="font-semibold text-sm mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>
-          飽和速度の加速
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "MNIST", year: 1998, saturated: 2003, gap: 5 },
-            { label: "ImageNet", year: 2010, saturated: 2015, gap: 5 },
-            { label: "GLUE", year: 2018, saturated: 2019, gap: 1 },
-            { label: "GPQA", year: 2023, saturated: 2024, gap: 1 },
-          ].map((item) => (
-            <div key={item.label} className="text-center">
-              <p className="mono text-[9px] text-muted-foreground uppercase tracking-wider mb-1">
-                {item.label}
-              </p>
-              <p className="text-2xl font-bold" style={{ fontFamily: "'Playfair Display', serif", color: item.gap <= 1 ? "#8B2252" : "#2D6A4F" }}>
-                {item.gap}年
-              </p>
-              <p className="mono text-[9px] text-muted-foreground">
-                {item.year}→{item.saturated}
-              </p>
-            </div>
-          ))}
+      {/* Chart */}
+      <div className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="display text-lg font-semibold text-foreground">{selected.name}</h3>
+            <p className="mono text-xs text-muted-foreground mt-0.5">
+              {selected.domain} · Introduced {selected.introduced}
+              {selected.saturated ? ` · Saturated ${selected.saturated}` : ""}
+            </p>
+          </div>
+          <span
+            className="mono text-xs px-2 py-1 rounded-full font-medium"
+            style={{ background: domainColor + "22", color: domainColor }}
+          >
+            {selected.domain}
+          </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-          MNISTは5年かけて飽和したが、GLUEやGPQAは導入から1年以内に人間レベルを超えた。
-          ベンチマーク設計がAIの進歩に追いつけなくなっている。
-        </p>
+
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.22 0.015 240)" />
+            <XAxis
+              dataKey="year"
+              tick={{ fill: "oklch(0.55 0.02 240)", fontSize: 11, fontFamily: "IBM Plex Mono" }}
+              tickLine={false}
+              axisLine={{ stroke: "oklch(0.22 0.015 240)" }}
+            />
+            <YAxis
+              domain={[0, 100]}
+              tick={{ fill: "oklch(0.55 0.02 240)", fontSize: 11, fontFamily: "IBM Plex Mono" }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `${v}`}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "oklch(0.13 0.012 240)",
+                border: "1px solid oklch(0.22 0.015 240)",
+                borderRadius: "8px",
+                fontFamily: "IBM Plex Mono",
+                fontSize: 12,
+              }}
+              labelStyle={{ color: "oklch(0.55 0.02 240)" }}
+              itemStyle={{ color: domainColor }}
+              formatter={(value: number, _: string, payload: any) => [
+                `${value.toFixed(1)}% — ${payload.payload.model}`,
+                "Score",
+              ]}
+            />
+            {/* Human baseline */}
+            <ReferenceLine
+              y={selected.humanBaseline}
+              stroke="oklch(0.65 0.18 250)"
+              strokeDasharray="6 3"
+              label={{
+                value: `Human ${selected.humanBaseline}%`,
+                fill: "oklch(0.65 0.18 250)",
+                fontSize: 10,
+                fontFamily: "IBM Plex Mono",
+                position: "insideTopRight",
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey="score"
+              stroke={domainColor}
+              strokeWidth={2.5}
+              dot={{ fill: domainColor, r: 5, strokeWidth: 0 }}
+              activeDot={{ r: 7, fill: domainColor }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+
+        {/* Data points table */}
+        <div className="mt-4 border-t border-border pt-4">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-muted-foreground mono">
+                <th className="text-left pb-2">Year</th>
+                <th className="text-left pb-2">Model</th>
+                <th className="text-right pb-2">Score</th>
+                <th className="text-right pb-2">vs Human</th>
+              </tr>
+            </thead>
+            <tbody>
+              {selected.dataPoints.map((d, i) => (
+                <tr key={i} className="border-t border-border/50">
+                  <td className="mono py-1.5 text-muted-foreground">{d.year}</td>
+                  <td className="py-1.5 text-foreground/85">{d.model}</td>
+                  <td className="mono py-1.5 text-right font-medium" style={{ color: domainColor }}>
+                    {d.score.toFixed(1)}%
+                  </td>
+                  <td
+                    className="mono py-1.5 text-right"
+                    style={{
+                      color:
+                        d.score >= selected.humanBaseline
+                          ? "#22c55e"
+                          : "oklch(0.55 0.02 240)",
+                    }}
+                  >
+                    {d.score >= selected.humanBaseline
+                      ? `+${(d.score - selected.humanBaseline).toFixed(1)}%`
+                      : `${(d.score - selected.humanBaseline).toFixed(1)}%`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Saturation note */}
+      {selected.saturated && (
+        <div className="bg-amber-950/30 border border-amber-900/40 rounded-lg p-3 text-xs text-amber-300/80">
+          <span className="font-medium mono">Benchmark Saturated {selected.saturated}:</span>{" "}
+          AI performance exceeded human baseline, making this benchmark no longer useful for measuring progress.
+          Researchers moved to harder benchmarks.
+        </div>
+      )}
     </div>
   );
 }
