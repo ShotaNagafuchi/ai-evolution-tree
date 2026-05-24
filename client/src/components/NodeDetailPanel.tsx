@@ -1,297 +1,296 @@
-// NodeDetailPanel.tsx
-// Design: Evolutionary Cartography — parchment card with benchmark chart
-// Shows node details + benchmark history via Recharts
+import React from "react";
+import { X, ExternalLink, TrendingUp, Cpu, Lightbulb, CheckCircle, XCircle, Tag } from "lucide-react";
+import { BreakthroughNode, LANE_COLORS, laneLabels, statusLabels } from "@/data/evolutionData";
 
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  type EvolutionNode,
-  benchmarkHistories,
-  categoryColors,
-  categoryLabels,
-  evolutionNodes,
-  statusLabels,
-} from "@/data/evolutionData";
-import { X, ExternalLink, TrendingUp, AlertTriangle, CheckCircle2, Archive } from "lucide-react";
-
-interface Props {
-  nodeId: string;
+interface NodeDetailPanelProps {
+  node: BreakthroughNode;
   onClose: () => void;
+  onNavigateTo: (nodeId: string) => void;
+  allNodes: BreakthroughNode[];
 }
 
-const statusIcon = {
-  active: <CheckCircle2 size={13} className="text-green-700" />,
-  stalled: <AlertTriangle size={13} className="text-amber-700" />,
-  superseded: <Archive size={13} className="text-slate-500" />,
-  foundational: <TrendingUp size={13} className="text-blue-700" />,
+const statusColors: Record<string, string> = {
+  active: "#22c55e",
+  foundational: "#3b82f6",
+  stalled: "#f59e0b",
+  superseded: "#ef4444",
 };
 
-const statusColor = {
-  active: "text-green-800 bg-green-50 border-green-200",
-  stalled: "text-amber-800 bg-amber-50 border-amber-200",
-  superseded: "text-slate-600 bg-slate-50 border-slate-200",
-  foundational: "text-blue-800 bg-blue-50 border-blue-200",
-};
-
-export default function NodeDetailPanel({ nodeId, onClose }: Props) {
-  const node = evolutionNodes.find((n) => n.id === nodeId);
-  if (!node) return null;
-
-  const color = categoryColors[node.category];
-
-  // Find related benchmarks
-  const relatedBenchmarks = benchmarkHistories.filter((bh) =>
-    bh.dataPoints.some((dp) =>
-      node.benchmarks.some((nb) => nb.benchmark === bh.name)
-    )
-  );
-
-  // Find children
-  const children = evolutionNodes.filter((n) => n.parentIds.includes(nodeId));
-  const parents = evolutionNodes.filter((n) => node.parentIds.includes(n.id));
-
-  // Capability bar width
-  const capWidth = `${node.capabilityGain}%`;
-  const infWidth = `${node.influenceScore}%`;
+export default function NodeDetailPanel({
+  node,
+  onClose,
+  onNavigateTo,
+  allNodes,
+}: NodeDetailPanelProps) {
+  const laneColor = LANE_COLORS[node.lane];
+  const children = allNodes.filter((n) => n.parentIds.includes(node.id));
+  const parents = allNodes.filter((n) => node.parentIds.includes(n.id));
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="detail-panel h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-start justify-between p-4 border-b border-border/60">
-        <div className="flex-1 min-w-0 pr-2">
-          <div className="flex items-center gap-2 mb-1">
-            <span
-              className="cat-badge text-white"
-              style={{ background: color }}
-            >
-              {categoryLabels[node.category]}
-            </span>
-            <span
-              className={`cat-badge border flex items-center gap-1 ${statusColor[node.status]}`}
-            >
-              {statusIcon[node.status]}
-              {statusLabels[node.status]}
-            </span>
+      <div
+        className="flex-shrink-0 px-5 py-4 border-b border-border"
+        style={{ borderTop: `3px solid ${laneColor}` }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="mono text-xs px-2 py-0.5 rounded-full font-medium"
+                style={{ background: laneColor + "22", color: laneColor }}
+              >
+                {laneLabels[node.lane]}
+              </span>
+              <span
+                className="mono text-xs px-2 py-0.5 rounded-full font-medium"
+                style={{
+                  background: statusColors[node.status] + "22",
+                  color: statusColors[node.status],
+                }}
+              >
+                {statusLabels[node.status]}
+              </span>
+            </div>
+            <h2 className="display text-xl font-bold text-foreground leading-tight">
+              {node.label.replace(/\n/g, " ")}
+            </h2>
+            <p className="mono text-xs text-muted-foreground mt-1">{node.year}</p>
           </div>
-          <h2
-            className="text-lg font-bold leading-tight"
-            style={{ fontFamily: "'Playfair Display', serif", color }}
+          <button
+            onClick={onClose}
+            className="flex-shrink-0 p-1.5 rounded-md hover:bg-accent transition-colors"
           >
-            {node.label}
-          </h2>
-          <p className="mono text-xs text-muted-foreground mt-0.5">{node.year}</p>
+            <X size={16} className="text-muted-foreground" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 rounded hover:bg-muted transition-colors shrink-0"
-        >
-          <X size={16} />
-        </button>
+        <p className="text-sm text-primary mt-2 font-medium italic">{node.tagline}</p>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 p-4 space-y-5">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
         {/* Description */}
-        <p className="text-sm leading-relaxed text-foreground/85">{node.description}</p>
+        <section>
+          <p className="text-sm text-foreground/90 leading-relaxed">{node.description}</p>
+        </section>
 
-        {/* Key paper */}
-        {node.keyPaper && (
-          <div className="parchment-card rounded p-3">
-            <p className="mono text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-              Key Paper
-            </p>
-            <p className="text-xs font-medium leading-snug">{node.keyPaper}</p>
-            {node.keyPaperUrl && (
-              <a
-                href={node.keyPaperUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 mt-1.5 text-[11px] text-primary hover:underline"
-              >
-                <ExternalLink size={10} />
-                論文を読む
-              </a>
-            )}
-          </div>
-        )}
-
-        {/* Capability & Influence bars */}
-        <div className="space-y-3">
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <span className="mono text-[10px] text-muted-foreground uppercase tracking-wider">
-                能力上昇幅
-              </span>
-              <span className="mono text-[11px] font-medium" style={{ color }}>
-                {node.capabilityGain}/100
-              </span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: capWidth, background: color, opacity: 0.75 }}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <span className="mono text-[10px] text-muted-foreground uppercase tracking-wider">
-                後世への影響力
-              </span>
-              <span className="mono text-[11px] font-medium" style={{ color }}>
-                {node.influenceScore}/100
-              </span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: infWidth, background: color, opacity: 0.55 }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Why stalled / succeeded */}
-        {node.whyStalledOrSucceeded && (
-          <div className="rounded p-3 border-l-2" style={{ borderColor: color, background: color + "10" }}>
-            <p className="mono text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-              {node.status === "stalled" || node.status === "superseded"
-                ? "なぜ失速・置換されたか"
-                : "なぜ成功したか"}
-            </p>
-            <p className="text-xs leading-relaxed">{node.whyStalledOrSucceeded}</p>
-          </div>
-        )}
-
-        {/* Benchmark chart */}
-        {node.benchmarks.length > 0 && (
-          <div>
-            <p className="mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
-              ベンチマーク実績
-            </p>
+        {/* Capability Metrics */}
+        {node.capabilityMetrics.length > 0 && (
+          <section>
+            <h3 className="mono text-xs uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
+              <TrendingUp size={12} />
+              Capability Gain
+            </h3>
             <div className="space-y-3">
-              {node.benchmarks.map((bm) => {
-                const history = benchmarkHistories.find((bh) => bh.name === bm.benchmark);
-                const chartData = history
-                  ? history.dataPoints.map((dp) => ({
-                      year: dp.year,
-                      score: dp.score,
-                      model: dp.model,
-                    }))
-                  : [{ year: bm.year, score: bm.score, model: node.label }];
-
-                return (
-                  <div key={bm.benchmark} className="parchment-card rounded p-3">
-                    <p className="text-xs font-semibold mb-2">{bm.benchmark}</p>
-                    <ResponsiveContainer width="100%" height={100}>
-                      <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: -20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.82 0.030 75)" strokeOpacity={0.5} />
-                        <XAxis
-                          dataKey="year"
-                          tick={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", fill: "oklch(0.52 0.04 60)" }}
-                          tickLine={false}
-                          axisLine={{ stroke: "oklch(0.82 0.030 75)" }}
-                        />
-                        <YAxis
-                          domain={[0, 100]}
-                          tick={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", fill: "oklch(0.52 0.04 60)" }}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            fontFamily: "'IBM Plex Mono', monospace",
-                            fontSize: 10,
-                            background: "oklch(0.99 0.010 85)",
-                            border: "1px solid oklch(0.82 0.030 75)",
-                            borderRadius: 4,
-                          }}
-                          formatter={(val: number) => [`${val}`, "スコア"]}
-                        />
-                        <ReferenceLine
-                          y={bm.humanBaseline}
-                          stroke="oklch(0.52 0.04 60)"
-                          strokeDasharray="4 3"
-                          strokeOpacity={0.6}
-                          label={{ value: "人間", position: "right", fontSize: 8, fontFamily: "'IBM Plex Mono', monospace", fill: "oklch(0.52 0.04 60)" }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="score"
-                          stroke={color}
-                          strokeWidth={2}
-                          dot={{ fill: color, r: 3 }}
-                          activeDot={{ r: 5 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                    <p className="mono text-[9px] text-muted-foreground mt-1">
-                      点線 = 人間ベースライン ({bm.humanBaseline})
-                    </p>
+              {node.capabilityMetrics.map((m, i) => (
+                <div key={i} className="bg-card rounded-lg p-3 border border-border">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-medium text-foreground">{m.domain}</span>
+                    <span
+                      className="mono text-xs font-bold"
+                      style={{ color: laneColor }}
+                    >
+                      +{m.after - m.before}pt
+                    </span>
                   </div>
-                );
-              })}
+                  <div className="flex items-center gap-2">
+                    <span className="mono text-xs text-muted-foreground w-8 text-right">{m.before}</span>
+                    <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full relative">
+                        <div
+                          className="absolute inset-y-0 left-0 rounded-full opacity-30"
+                          style={{
+                            width: `${m.before}%`,
+                            background: laneColor,
+                          }}
+                        />
+                        <div
+                          className="absolute inset-y-0 left-0 rounded-full"
+                          style={{
+                            width: `${m.after}%`,
+                            background: laneColor,
+                            transition: "width 600ms cubic-bezier(0.23,1,0.32,1)",
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <span className="mono text-xs font-bold text-foreground w-8">{m.after}</span>
+                  </div>
+                  {m.benchmark && (
+                    <p className="mono text-xs text-muted-foreground mt-1.5">{m.benchmark}</p>
+                  )}
+                </div>
+              ))}
             </div>
-          </div>
+            {/* Overall scores */}
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="bg-card rounded-lg p-2.5 border border-border text-center">
+                <div className="mono text-lg font-bold" style={{ color: laneColor }}>
+                  {node.capabilityGain}
+                </div>
+                <div className="mono text-xs text-muted-foreground mt-0.5">Capability</div>
+              </div>
+              <div className="bg-card rounded-lg p-2.5 border border-border text-center">
+                <div className="mono text-lg font-bold text-amber-400">
+                  {node.influenceScore}
+                </div>
+                <div className="mono text-xs text-muted-foreground mt-0.5">Influence</div>
+              </div>
+              <div className="bg-card rounded-lg p-2.5 border border-border text-center">
+                <div
+                  className="mono text-lg font-bold"
+                  style={{ color: node.computeCost < 0 ? "#22c55e" : "#f59e0b" }}
+                >
+                  {node.computeCost > 0 ? "+" : ""}{node.computeCost}
+                </div>
+                <div className="mono text-xs text-muted-foreground mt-0.5">Compute</div>
+              </div>
+            </div>
+          </section>
         )}
 
-        {/* Relations */}
-        {(parents.length > 0 || children.length > 0) && (
-          <div className="space-y-2">
-            {parents.length > 0 && (
-              <div>
-                <p className="mono text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
-                  親理論・前身
+        {/* Mechanism */}
+        <section>
+          <h3 className="mono text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Cpu size={12} />
+            How It Works
+          </h3>
+          <p className="text-sm text-foreground/85 leading-relaxed bg-card rounded-lg p-3 border border-border">
+            {node.mechanism}
+          </p>
+        </section>
+
+        {/* Inspiration */}
+        <section>
+          <h3 className="mono text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Lightbulb size={12} />
+            Inspiration & Origin
+          </h3>
+          <p className="text-sm text-foreground/85 leading-relaxed bg-card rounded-lg p-3 border border-border">
+            {node.inspiration}
+          </p>
+        </section>
+
+        {/* Why it worked / failed */}
+        {node.whyItWorked && (
+          <section>
+            <h3 className="mono text-xs uppercase tracking-widest text-green-500 mb-2 flex items-center gap-1.5">
+              <CheckCircle size={12} />
+              Why It Worked
+            </h3>
+            <p className="text-sm text-foreground/85 leading-relaxed bg-green-950/30 rounded-lg p-3 border border-green-900/40">
+              {node.whyItWorked}
+            </p>
+          </section>
+        )}
+
+        {node.whyItFailed && (
+          <section>
+            <h3 className="mono text-xs uppercase tracking-widest text-red-400 mb-2 flex items-center gap-1.5">
+              <XCircle size={12} />
+              Why It Stalled / Was Superseded
+            </h3>
+            <p className="text-sm text-foreground/85 leading-relaxed bg-red-950/30 rounded-lg p-3 border border-red-900/40">
+              {node.whyItFailed}
+            </p>
+          </section>
+        )}
+
+        {/* Key Paper */}
+        {node.keyPaper && (
+          <section>
+            <h3 className="mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
+              Key Paper
+            </h3>
+            <div className="bg-card rounded-lg p-3 border border-border">
+              {node.keyPaperUrl ? (
+                <a
+                  href={node.keyPaperUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline flex items-start gap-1.5"
+                >
+                  <ExternalLink size={12} className="mt-0.5 flex-shrink-0" />
+                  <span>{node.keyPaper}</span>
+                </a>
+              ) : (
+                <p className="text-sm text-foreground/85">{node.keyPaper}</p>
+              )}
+              {node.authors && (
+                <p className="mono text-xs text-muted-foreground mt-1.5">
+                  {node.authors} — {node.institution}
                 </p>
-                <div className="flex flex-wrap gap-1.5">
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Tags */}
+        <section>
+          <h3 className="mono text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Tag size={12} />
+            Tags
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {node.tags.map((tag) => (
+              <span
+                key={tag}
+                className="mono text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* Connections */}
+        {(parents.length > 0 || children.length > 0) && (
+          <section>
+            <h3 className="mono text-xs uppercase tracking-widest text-muted-foreground mb-3">
+              Connections
+            </h3>
+            {parents.length > 0 && (
+              <div className="mb-3">
+                <p className="mono text-xs text-muted-foreground mb-1.5">Built upon</p>
+                <div className="space-y-1">
                   {parents.map((p) => (
-                    <span
+                    <button
                       key={p.id}
-                      className="text-xs px-2 py-0.5 rounded border"
-                      style={{
-                        borderColor: categoryColors[p.category] + "60",
-                        color: categoryColors[p.category],
-                        background: categoryColors[p.category] + "10",
-                      }}
+                      onClick={() => onNavigateTo(p.id)}
+                      className="w-full text-left text-xs px-3 py-2 rounded-md bg-secondary hover:bg-accent transition-colors flex items-center justify-between group"
                     >
-                      {p.label} ({p.year})
-                    </span>
+                      <span className="text-foreground/85">{p.label.replace(/\n/g, " ")}</span>
+                      <span className="mono text-muted-foreground group-hover:text-foreground transition-colors">
+                        {p.year}
+                      </span>
+                    </button>
                   ))}
                 </div>
               </div>
             )}
             {children.length > 0 && (
               <div>
-                <p className="mono text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
-                  派生・後継
-                </p>
-                <div className="flex flex-wrap gap-1.5">
+                <p className="mono text-xs text-muted-foreground mb-1.5">Led to</p>
+                <div className="space-y-1">
                   {children.map((c) => (
-                    <span
+                    <button
                       key={c.id}
-                      className="text-xs px-2 py-0.5 rounded border"
-                      style={{
-                        borderColor: categoryColors[c.category] + "60",
-                        color: categoryColors[c.category],
-                        background: categoryColors[c.category] + "10",
-                      }}
+                      onClick={() => onNavigateTo(c.id)}
+                      className="w-full text-left text-xs px-3 py-2 rounded-md bg-secondary hover:bg-accent transition-colors flex items-center justify-between group"
                     >
-                      {c.label} ({c.year})
-                    </span>
+                      <span className="text-foreground/85">{c.label.replace(/\n/g, " ")}</span>
+                      <span className="mono text-muted-foreground group-hover:text-foreground transition-colors">
+                        {c.year}
+                      </span>
+                    </button>
                   ))}
                 </div>
               </div>
             )}
-          </div>
+          </section>
         )}
+
+        <div className="h-4" />
       </div>
     </div>
   );
