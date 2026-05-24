@@ -1,12 +1,15 @@
-/* ============================================================
-   AI Evolution Tree — Global Styles
-   Design: Evolutionary Cartography (Natural History Museum)
-   Palette: Warm cream parchment × sepia ink × category accents
-   Fonts: Playfair Display (headings) + Lora (body) + IBM Plex Mono (data)
-   ============================================================ */
-
 @import "tailwindcss";
 @import "tw-animate-css";
+
+/*
+ * Design Philosophy: Scientific Chronicle
+ * - Dark background (#0D1117) like a research lab at night
+ * - Monospace data font (IBM Plex Mono) for metrics and years
+ * - Serif display font (Playfair Display) for headings
+ * - Lane colors as accent stripes
+ * - Smooth vertical scroll = time axis
+ * - Horizontal lanes = research approach categories
+ */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -50,65 +53,39 @@
 }
 
 :root {
-  --radius: 0.4rem;
-
-  /* Parchment warm cream palette */
-  --background: oklch(0.97 0.018 85);
-  --foreground: oklch(0.22 0.04 55);
-
-  --card: oklch(0.99 0.010 85);
-  --card-foreground: oklch(0.22 0.04 55);
-
-  --popover: oklch(0.99 0.010 85);
-  --popover-foreground: oklch(0.22 0.04 55);
-
-  /* Slate blue primary */
-  --primary: oklch(0.38 0.10 240);
-  --primary-foreground: oklch(0.97 0.01 85);
-
-  --secondary: oklch(0.92 0.020 85);
-  --secondary-foreground: oklch(0.30 0.05 55);
-
-  --muted: oklch(0.93 0.015 85);
-  --muted-foreground: oklch(0.52 0.04 60);
-
-  --accent: oklch(0.90 0.025 85);
-  --accent-foreground: oklch(0.25 0.05 55);
-
-  --destructive: oklch(0.55 0.20 25);
-  --destructive-foreground: oklch(0.97 0 0);
-
-  --border: oklch(0.82 0.030 75);
-  --input: oklch(0.88 0.025 80);
-  --ring: oklch(0.38 0.10 240);
-
-  /* Charts — category colors */
-  --chart-1: oklch(0.55 0.12 75);   /* symbolic amber */
-  --chart-2: oklch(0.45 0.12 155);  /* connectionist green */
-  --chart-3: oklch(0.38 0.12 240);  /* transformer violet */
-  --chart-4: oklch(0.40 0.10 210);  /* reinforcement navy */
-  --chart-5: oklch(0.45 0.14 340);  /* diffusion burgundy */
-
-  --sidebar: oklch(0.95 0.020 85);
-  --sidebar-foreground: oklch(0.22 0.04 55);
-  --sidebar-primary: oklch(0.38 0.10 240);
-  --sidebar-primary-foreground: oklch(0.97 0.01 85);
-  --sidebar-accent: oklch(0.90 0.025 85);
-  --sidebar-accent-foreground: oklch(0.25 0.05 55);
-  --sidebar-border: oklch(0.82 0.030 75);
-  --sidebar-ring: oklch(0.38 0.10 240);
-
-  /* Category colors (used in JS too via CSS vars) */
-  --cat-symbolic: #8B6914;
-  --cat-connectionist: #2D6A4F;
-  --cat-reinforcement: #1B4F72;
-  --cat-transformer: #6B2D8B;
-  --cat-diffusion: #8B2252;
-  --cat-hybrid: #1A5276;
-
-  /* Custom easing */
-  --ease-out-expo: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out-expo: cubic-bezier(0.77, 0, 0.175, 1);
+  --radius: 0.5rem;
+  --background: oklch(0.09 0.01 240);
+  --foreground: oklch(0.92 0.01 240);
+  --card: oklch(0.13 0.012 240);
+  --card-foreground: oklch(0.92 0.01 240);
+  --popover: oklch(0.13 0.012 240);
+  --popover-foreground: oklch(0.92 0.01 240);
+  --primary: oklch(0.65 0.18 250);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.18 0.015 240);
+  --secondary-foreground: oklch(0.85 0.01 240);
+  --muted: oklch(0.16 0.01 240);
+  --muted-foreground: oklch(0.55 0.02 240);
+  --accent: oklch(0.22 0.02 240);
+  --accent-foreground: oklch(0.92 0.01 240);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.22 0.015 240);
+  --input: oklch(0.22 0.015 240);
+  --ring: oklch(0.65 0.18 250);
+  --chart-1: oklch(0.65 0.18 250);
+  --chart-2: oklch(0.65 0.18 150);
+  --chart-3: oklch(0.65 0.18 50);
+  --chart-4: oklch(0.65 0.18 320);
+  --chart-5: oklch(0.65 0.18 30);
+  --sidebar: oklch(0.11 0.01 240);
+  --sidebar-foreground: oklch(0.92 0.01 240);
+  --sidebar-primary: oklch(0.65 0.18 250);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.18 0.015 240);
+  --sidebar-accent-foreground: oklch(0.92 0.01 240);
+  --sidebar-border: oklch(0.22 0.015 240);
+  --sidebar-ring: oklch(0.65 0.18 250);
 }
 
 @layer base {
@@ -117,20 +94,17 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Lora', Georgia, serif;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', Georgia, serif;
-  }
-  code, pre, .mono {
-    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-family: "Lora", Georgia, serif;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   [type="button"]:not(:disabled),
   [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
   a[href],
-  select:not(:disabled) {
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
   }
 }
@@ -143,69 +117,107 @@
     padding-left: 1rem;
     padding-right: 1rem;
   }
+
   .flex {
     min-height: 0;
     min-width: 0;
   }
+
   @media (min-width: 640px) {
-    .container { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
   }
+
   @media (min-width: 1024px) {
-    .container { padding-left: 2rem; padding-right: 2rem; max-width: 1440px; }
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1400px;
+    }
   }
 
-  /* Parchment card */
-  .parchment-card {
-    background: oklch(0.99 0.010 85);
-    border: 1px solid oklch(0.82 0.030 75);
-    box-shadow: 0 2px 8px oklch(0.22 0.04 55 / 0.08), 0 1px 2px oklch(0.22 0.04 55 / 0.04);
+  /* Timeline specific styles */
+  .timeline-grid {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 0;
   }
 
-  /* Ink divider */
-  .ink-divider {
-    border: none;
-    border-top: 1px solid oklch(0.70 0.04 70);
-    opacity: 0.5;
-  }
-
-  /* Category badge */
-  .cat-badge {
-    font-family: 'IBM Plex Mono', monospace;
+  .lane-header {
+    font-family: "IBM Plex Mono", monospace;
     font-size: 0.65rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 2px;
+    writing-mode: horizontal-tb;
   }
-}
 
-/* Scrollbar styling */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: oklch(0.93 0.015 85); }
-::-webkit-scrollbar-thumb { background: oklch(0.70 0.04 70); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: oklch(0.55 0.06 70); }
+  .node-card {
+    transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 150ms cubic-bezier(0.23, 1, 0.32, 1),
+                border-color 150ms ease;
+  }
 
-/* Smooth scroll */
-html { scroll-behavior: smooth; }
+  .node-card:hover {
+    transform: translateY(-2px) scale(1.02);
+  }
 
-/* SVG tree animations */
-@keyframes drawLine {
-  from { stroke-dashoffset: 1000; }
-  to   { stroke-dashoffset: 0; }
-}
-@keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.85); }
-  to   { opacity: 1; transform: scale(1); }
-}
-@keyframes pulseGlow {
-  0%, 100% { filter: drop-shadow(0 0 3px currentColor); }
-  50%       { filter: drop-shadow(0 0 8px currentColor); }
-}
+  .node-card:active {
+    transform: scale(0.97);
+  }
 
-.svg-edge-animate {
-  stroke-dasharray: 1000;
-  animation: drawLine 1.2s var(--ease-out-expo) forwards;
-}
-.svg-node-animate {
-  animation: fadeInScale 0.4s var(--ease-out-expo) forwards;
+  .detail-panel {
+    animation: slideInRight 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .era-band {
+    transition: opacity 200ms ease;
+  }
+
+  .connection-line {
+    stroke-dasharray: 4 3;
+    animation: dashFlow 20s linear infinite;
+  }
+
+  @keyframes dashFlow {
+    to {
+      stroke-dashoffset: -100;
+    }
+  }
+
+  .mono {
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  .display {
+    font-family: "Playfair Display", Georgia, serif;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: oklch(0.12 0.01 240);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.28 0.02 240);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.38 0.03 240);
+  }
 }
